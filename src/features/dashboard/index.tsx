@@ -36,13 +36,24 @@ export function Dashboard() {
   const [logs, setLogs] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [copiedId, setCopiedId] = useState<number | null>(null)
-  const [apiUrl, setApiUrl] = useState(() => localStorage.getItem('jio_api_url') || import.meta.env.VITE_JIO_API_URL || 'https://sensitive-affiliates-winds-grey.trycloudflare.com')
+  const DEFAULT_TUNNEL = 'https://sensitive-affiliates-winds-grey.trycloudflare.com'
+  const [apiUrl, setApiUrl] = useState(() => {
+    const saved = localStorage.getItem('jio_api_url')
+    if (saved && saved.length >= 10 && saved.includes('http')) return saved
+    return import.meta.env.VITE_JIO_API_URL || DEFAULT_TUNNEL
+  })
   const [autoRefresh, setAutoRefresh] = useState(true)
   const logBottomRef = useRef<HTMLDivElement>(null)
 
   const handleSaveApiUrl = (url: string) => {
     setApiUrl(url)
     localStorage.setItem('jio_api_url', url)
+  }
+
+  const handleResetApiUrl = () => {
+    localStorage.removeItem('jio_api_url')
+    setApiUrl(DEFAULT_TUNNEL)
+    setTimeout(() => loadAllData(), 100)
   }
 
   const loadAllData = async () => {
@@ -109,13 +120,22 @@ export function Dashboard() {
           <span>Jio-Farm Cloud Console</span>
         </div>
         <div className='ml-auto flex items-center space-x-3'>
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-1.5'>
             <Input
               value={apiUrl}
               onChange={(e) => handleSaveApiUrl(e.target.value)}
               placeholder='Backend API URL'
-              className='h-8 w-64 text-xs font-mono'
+              className='h-8 w-72 text-xs font-mono'
             />
+            <Button
+              variant='ghost'
+              size='sm'
+              className='h-8 text-xs px-2'
+              onClick={handleResetApiUrl}
+              title='Reset to default Cloudflare Tunnel'
+            >
+              Reset
+            </Button>
           </div>
           <Button
             variant={autoRefresh ? 'default' : 'outline'}

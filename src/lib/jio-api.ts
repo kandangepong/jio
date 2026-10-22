@@ -2,14 +2,30 @@
  * Jio-Farm API Client for Vercel/Netlify Dashboard
  */
 
-function getApiBase(): string {
+const DEFAULT_TUNNEL_URL = 'https://sensitive-affiliates-winds-grey.trycloudflare.com';
+
+export function normalizeUrl(url: string | null | undefined): string {
+  if (!url) return DEFAULT_TUNNEL_URL;
+  let clean = url.trim().replace(/\/+$/, '');
+  if (!clean || clean.length < 10) return DEFAULT_TUNNEL_URL;
+  if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+    clean = 'https://' + clean;
+  }
+  return clean;
+}
+
+export function getApiBase(): string {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('jio_api_url');
-    if (saved) return saved.replace(/\/+$/, '');
+    if (saved && saved.trim().length >= 10) {
+      return normalizeUrl(saved);
+    }
   }
   const envUrl = import.meta.env.VITE_JIO_API_URL;
-  if (envUrl) return envUrl.replace(/\/+$/, '');
-  return 'https://sensitive-affiliates-winds-grey.trycloudflare.com';
+  if (envUrl && envUrl.trim().length >= 10) {
+    return normalizeUrl(envUrl);
+  }
+  return DEFAULT_TUNNEL_URL;
 }
 
 export interface JioStats {
