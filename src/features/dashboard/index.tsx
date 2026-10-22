@@ -36,7 +36,7 @@ export function Dashboard() {
   const [logs, setLogs] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [copiedId, setCopiedId] = useState<number | null>(null)
-  const [apiUrl, setApiUrl] = useState(() => localStorage.getItem('jio_api_url') || import.meta.env.VITE_JIO_API_URL || 'http://localhost:8080')
+  const [apiUrl, setApiUrl] = useState(() => localStorage.getItem('jio_api_url') || import.meta.env.VITE_JIO_API_URL || 'https://sensitive-affiliates-winds-grey.trycloudflare.com')
   const [autoRefresh, setAutoRefresh] = useState(true)
   const logBottomRef = useRef<HTMLDivElement>(null)
 
@@ -194,7 +194,7 @@ export function Dashboard() {
               <Server className='h-4 w-4 text-muted-foreground' />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>{stats?.active_panels ?? panels.length}</div>
+              <div className='text-2xl font-bold'>{stats?.active_panels_count ?? panels.length}</div>
               <p className='text-xs text-muted-foreground'>Total scanned Firebase endpoints</p>
             </CardContent>
           </Card>
@@ -205,7 +205,7 @@ export function Dashboard() {
               <Layers className='h-4 w-4 text-muted-foreground' />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>{stats?.active_jio_numbers ?? 0}</div>
+              <div className='text-2xl font-bold'>{stats?.active_devices_count ?? 0}</div>
               <p className='text-xs text-muted-foreground'>Verified OTP targets</p>
             </CardContent>
           </Card>
@@ -217,7 +217,7 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className='text-2xl font-bold text-primary'>
-                {stats?.ready_claim_links ?? links.filter((l) => !l.claimed).length}
+                {stats?.fresh_links_count ?? links.filter((l) => !l.claimed).length}
               </div>
               <p className='text-xs text-muted-foreground'>Gemini AI Pro activations</p>
             </CardContent>
@@ -229,7 +229,7 @@ export function Dashboard() {
               <Shield className='h-4 w-4 text-muted-foreground' />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>{stats?.proxy_pool_size ?? 0}</div>
+              <div className='text-2xl font-bold'>{stats?.proxy_count ?? 0}</div>
               <p className='text-xs text-muted-foreground'>Rotated proxies alive</p>
             </CardContent>
           </Card>
