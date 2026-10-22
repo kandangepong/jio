@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Shield,
   Trash2,
+  Activity,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,13 +28,19 @@ import { Input } from '@/components/ui/input'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { jioApi, type JioStats, type JioPanel, type JioLink } from '@/lib/jio-api'
+import {
+  jioApi,
+  type JioStats,
+  type JioPanel,
+  type JioLink,
+  type JioLogItem,
+} from '@/lib/jio-api'
 
 export function Dashboard() {
   const [stats, setStats] = useState<JioStats | null>(null)
   const [panels, setPanels] = useState<JioPanel[]>([])
   const [links, setLinks] = useState<JioLink[]>([])
-  const [logs, setLogs] = useState<string[]>([])
+  const [logs, setLogs] = useState<JioLogItem[]>([])
   const [loading, setLoading] = useState(false)
   const [copiedId, setCopiedId] = useState<number | null>(null)
   const DEFAULT_TUNNEL = 'https://sensitive-affiliates-winds-grey.trycloudflare.com'
@@ -69,7 +76,9 @@ export function Dashboard() {
       if (sData.status === 'fulfilled') setStats(sData.value)
       if (pData.status === 'fulfilled') setPanels(pData.value)
       if (lData.status === 'fulfilled') setLinks(lData.value)
-      if (logsData.status === 'fulfilled') setLogs(logsData.value)
+      if (logsData.status === 'fulfilled') {
+        setLogs(logsData.value)
+      }
     } catch (err) {
       console.error('Failed to load Jio data:', err)
     } finally {
@@ -83,7 +92,7 @@ export function Dashboard() {
 
     const interval = setInterval(() => {
       loadAllData()
-    }, 5000)
+    }, 4000)
 
     return () => clearInterval(interval)
   }, [autoRefresh])
@@ -164,24 +173,41 @@ export function Dashboard() {
             <div className='flex items-center justify-between'>
               <div>
                 <CardTitle className='text-base font-semibold'>Cluster Controls</CardTitle>
-                <CardDescription>Start, stop, and rescan automation workers</CardDescription>
+                <CardDescription>
+                  Uptime: {stats?.uptime_seconds ? `${Math.floor(stats.uptime_seconds / 60)}m` : '0m'} |
+                  Hunter: {stats?.hunter_running ? '🟢 Aktif' : '🔴 Mati'} |
+                  Farm: {stats?.farm_running ? '🟢 Aktif' : '🔴 Mati'} |
+                  Tracker: {stats?.tracker_running ? '🟢 Aktif' : '🔴 Mati'}
+                </CardDescription>
               </div>
               <div className='flex items-center gap-2'>
                 <Button
                   size='sm'
                   variant={stats?.hunter_running ? 'destructive' : 'default'}
-                  onClick={() => handleControl(stats?.hunter_running ? 'hunter/stop' : 'hunter/start')}
+                  onClick={() =>
+                    handleControl(stats?.hunter_running ? 'hunter/stop' : 'hunter/start')
+                  }
                 >
-                  {stats?.hunter_running ? <Square className='h-3.5 w-3.5 mr-1' /> : <Play className='h-3.5 w-3.5 mr-1' />}
+                  {stats?.hunter_running ? (
+                    <Square className='h-3.5 w-3.5 mr-1' />
+                  ) : (
+                    <Play className='h-3.5 w-3.5 mr-1' />
+                  )}
                   Hunter ({stats?.hunter_running ? 'Active' : 'Stopped'})
                 </Button>
 
                 <Button
                   size='sm'
                   variant={stats?.farm_running ? 'destructive' : 'default'}
-                  onClick={() => handleControl(stats?.farm_running ? 'farm/stop' : 'farm/start')}
+                  onClick={() =>
+                    handleControl(stats?.farm_running ? 'farm/stop' : 'farm/start')
+                  }
                 >
-                  {stats?.farm_running ? <Square className='h-3.5 w-3.5 mr-1' /> : <Play className='h-3.5 w-3.5 mr-1' />}
+                  {stats?.farm_running ? (
+                    <Square className='h-3.5 w-3.5 mr-1' />
+                  ) : (
+                    <Play className='h-3.5 w-3.5 mr-1' />
+                  )}
                   Farm ({stats?.farm_running ? 'Active' : 'Stopped'})
                 </Button>
 
@@ -214,8 +240,12 @@ export function Dashboard() {
               <Server className='h-4 w-4 text-muted-foreground' />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>{stats?.active_panels_count ?? panels.length}</div>
-              <p className='text-xs text-muted-foreground'>Total scanned Firebase endpoints</p>
+              <div className='text-2xl font-bold'>
+                {stats?.active_panels_count ?? panels.length}
+              </div>
+              <p className='text-xs text-muted-foreground'>
+                Total scanned: {stats?.total_panels_count ?? panels.length} Firebase
+              </p>
             </CardContent>
           </Card>
 
@@ -225,7 +255,9 @@ export function Dashboard() {
               <Layers className='h-4 w-4 text-muted-foreground' />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>{stats?.active_devices_count ?? 0}</div>
+              <div className='text-2xl font-bold'>
+                {stats?.active_devices_count ?? 0}
+              </div>
               <p className='text-xs text-muted-foreground'>Verified OTP targets</p>
             </CardContent>
           </Card>
@@ -237,9 +269,11 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className='text-2xl font-bold text-primary'>
-                {stats?.fresh_links_count ?? links.filter((l) => !l.claimed).length}
+                {stats?.fresh_links_count ?? links.length}
               </div>
-              <p className='text-xs text-muted-foreground'>Gemini AI Pro activations</p>
+              <p className='text-xs text-muted-foreground'>
+                Harvested Gemini AI Pro URLs
+              </p>
             </CardContent>
           </Card>
 
@@ -268,7 +302,7 @@ export function Dashboard() {
             </TabsTrigger>
             <TabsTrigger value='logs' className='gap-2'>
               <Terminal className='h-4 w-4' />
-              Live Console
+              Live Console ({logs.length})
             </TabsTrigger>
           </TabsList>
 
@@ -279,14 +313,22 @@ export function Dashboard() {
                 <div className='flex items-center justify-between'>
                   <div>
                     <CardTitle className='text-lg'>Ready-to-Claim Gemini Links</CardTitle>
-                    <CardDescription>Direct Google Gemini Pro subscription activation URLs</CardDescription>
+                    <CardDescription>
+                      Direct Google Gemini Pro subscription activation URLs
+                    </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 {links.length === 0 ? (
-                  <div className='py-8 text-center text-sm text-muted-foreground'>
-                    Belum ada link yang dipanen. Pastikan Hunter dan Farm berjalan aktif.
+                  <div className='py-12 text-center'>
+                    <div className='flex justify-center mb-3 text-muted-foreground'>
+                      <Activity className='h-10 w-10 animate-pulse' />
+                    </div>
+                    <div className='text-sm font-medium'>Belum ada link yang selesai dipanen.</div>
+                    <div className='text-xs text-muted-foreground mt-1'>
+                      Hunter & Farm sedang aktif memindai panel dan mengantrekan OTP. Cek tab "Live Console" untuk melihat log proses real-time.
+                    </div>
                   </div>
                 ) : (
                   <div className='overflow-x-auto'>
@@ -295,35 +337,41 @@ export function Dashboard() {
                         <tr>
                           <th className='py-3 px-2'>No. HP</th>
                           <th className='py-3 px-2'>Link Klaim</th>
-                          <th className='py-3 px-2'>Status</th>
+                          <th className='py-3 px-2'>Tipe</th>
+                          <th className='py-3 px-2'>Waktu</th>
                           <th className='py-3 px-2 text-right'>Aksi</th>
                         </tr>
                       </thead>
                       <tbody className='divide-y'>
                         {links.map((item) => (
                           <tr key={item.id} className='hover:bg-muted/50'>
-                            <td className='py-3 px-2 font-mono font-medium'>{item.phone_number}</td>
+                            <td className='py-3 px-2 font-mono font-medium'>
+                              {item.jio_number}
+                            </td>
                             <td className='py-3 px-2 font-mono text-xs max-w-md truncate'>
                               <a
-                                href={item.claim_url}
+                                href={item.link}
                                 target='_blank'
                                 rel='noreferrer'
                                 className='hover:underline text-primary flex items-center gap-1'
                               >
-                                {item.claim_url}
+                                {item.link}
                                 <ExternalLink className='h-3 w-3 inline' />
                               </a>
                             </td>
                             <td className='py-3 px-2'>
-                              <Badge variant={item.claimed ? 'secondary' : 'default'}>
-                                {item.claimed ? 'Claimed' : 'Ready'}
+                              <Badge variant={item.type === 'fresh' ? 'default' : 'secondary'}>
+                                {item.type || 'link'}
                               </Badge>
+                            </td>
+                            <td className='py-3 px-2 text-xs text-muted-foreground'>
+                              {item.created_at || '-'}
                             </td>
                             <td className='py-3 px-2 text-right space-x-2'>
                               <Button
                                 size='sm'
                                 variant='outline'
-                                onClick={() => copyToClipboard(item.claim_url, item.id)}
+                                onClick={() => copyToClipboard(item.link, item.id)}
                               >
                                 {copiedId === item.id ? (
                                   <Check className='h-3.5 w-3.5 text-green-500 mr-1' />
@@ -332,15 +380,13 @@ export function Dashboard() {
                                 )}
                                 Salin
                               </Button>
-                              {!item.claimed && (
-                                <Button
-                                  size='sm'
-                                  variant='default'
-                                  onClick={() => handleClaim(item.id)}
-                                >
-                                  Claim
-                                </Button>
-                              )}
+                              <Button
+                                size='sm'
+                                variant='default'
+                                onClick={() => handleClaim(item.id)}
+                              >
+                                Claim
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -369,20 +415,30 @@ export function Dashboard() {
                     <table className='w-full text-left text-sm'>
                       <thead className='border-b text-xs font-medium uppercase text-muted-foreground'>
                         <tr>
-                          <th className='py-3 px-2'>Project ID</th>
-                          <th className='py-3 px-2'>Devices</th>
+                          <th className='py-3 px-2'>Host / Database</th>
+                          <th className='py-3 px-2'>Active Devices</th>
+                          <th className='py-3 px-2'>Total Devices</th>
                           <th className='py-3 px-2'>Status</th>
+                          <th className='py-3 px-2'>Terakhir Scan</th>
                         </tr>
                       </thead>
                       <tbody className='divide-y'>
                         {panels.map((p, idx) => (
                           <tr key={idx} className='hover:bg-muted/50'>
-                            <td className='py-3 px-2 font-mono'>{p.project_id}</td>
-                            <td className='py-3 px-2'>{p.device_count ?? '-'}</td>
+                            <td className='py-3 px-2 font-mono font-medium'>{p.host}</td>
+                            <td className='py-3 px-2 font-semibold text-green-600 dark:text-green-400'>
+                              {p.active_device_count ?? 0}
+                            </td>
+                            <td className='py-3 px-2 text-muted-foreground'>
+                              {p.total_device_count ?? 0}
+                            </td>
                             <td className='py-3 px-2'>
                               <Badge variant={p.status === 'active' ? 'default' : 'secondary'}>
                                 {p.status || 'unknown'}
                               </Badge>
+                            </td>
+                            <td className='py-3 px-2 text-xs text-muted-foreground'>
+                              {p.last_scanned_at || '-'}
                             </td>
                           </tr>
                         ))}
@@ -398,7 +454,10 @@ export function Dashboard() {
           <TabsContent value='logs' className='space-y-4'>
             <Card className='bg-zinc-950 text-zinc-100 font-mono text-xs border-zinc-800'>
               <CardHeader className='pb-2 border-b border-zinc-800 flex flex-row items-center justify-between'>
-                <CardTitle className='text-sm text-zinc-300'>Live Terminal Output</CardTitle>
+                <div className='flex items-center gap-2'>
+                  <Terminal className='h-4 w-4 text-green-400' />
+                  <CardTitle className='text-sm text-zinc-300'>Live Terminal Output</CardTitle>
+                </div>
                 <div className='flex items-center gap-2'>
                   <Button
                     size='sm'
@@ -411,15 +470,37 @@ export function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent className='p-4'>
-                <div className='h-96 overflow-y-auto space-y-1 select-text'>
+                <div className='h-96 overflow-y-auto space-y-1.5 select-text'>
                   {logs.length === 0 ? (
                     <div className='text-zinc-500'>Waiting for live logs from backend...</div>
                   ) : (
-                    logs.map((line, idx) => (
-                      <div key={idx} className='leading-relaxed break-all'>
-                        {line}
-                      </div>
-                    ))
+                    logs.map((item, idx) => {
+                      const isErr = item.level === 'ERROR' || item.level === 'CRITICAL'
+                      const isWarn = item.level === 'WARNING'
+                      const isInfo = item.level === 'INFO'
+                      return (
+                        <div key={idx} className='leading-relaxed font-mono flex items-start gap-2'>
+                          <span className='text-zinc-500 select-none'>{item.time || ''}</span>
+                          <span
+                            className={`font-semibold px-1 rounded text-[10px] ${
+                              isErr
+                                ? 'bg-red-950 text-red-400 border border-red-800'
+                                : isWarn
+                                ? 'bg-amber-950 text-amber-400 border border-amber-800'
+                                : isInfo
+                                ? 'bg-emerald-950 text-emerald-400'
+                                : 'text-zinc-400'
+                            }`}
+                          >
+                            {item.level || 'LOG'}
+                          </span>
+                          {item.name && (
+                            <span className='text-zinc-400 select-none'>[{item.name}]</span>
+                          )}
+                          <span className='text-zinc-200 break-all'>{item.msg}</span>
+                        </div>
+                      )
+                    })
                   )}
                   <div ref={logBottomRef} />
                 </div>

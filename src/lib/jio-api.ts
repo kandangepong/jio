@@ -46,22 +46,33 @@ export interface JioStats {
 }
 
 export interface JioPanel {
-  id?: string;
-  project_id: string;
-  api_key?: string;
+  id?: number | string;
+  host: string;
   status: string;
-  last_seen?: string;
-  device_count?: number;
-  error?: string;
+  sms_node?: string;
+  last_scanned_at?: string;
+  total_device_count?: number;
+  active_device_count?: number;
+  dead_device_count?: number;
+  priority_score?: number;
 }
 
 export interface JioLink {
   id: number;
-  phone_number: string;
-  claim_url: string;
-  harvested_at: string;
-  claimed: boolean;
-  claimed_at?: string;
+  jio_number: string;
+  link: string;
+  type?: string;
+  created_at?: string;
+  claimed?: boolean;
+}
+
+export interface JioLogItem {
+  ts?: number;
+  time?: string;
+  level?: string;
+  name?: string;
+  channel?: string;
+  msg: string;
 }
 
 export const jioApi = {
@@ -75,14 +86,14 @@ export const jioApi = {
     const res = await fetch(`${getApiBase()}/api/panels`);
     if (!res.ok) throw new Error(`Failed to fetch panels: ${res.statusText}`);
     const data = await res.json();
-    return Array.isArray(data) ? data : data.panels || [];
+    return Array.isArray(data) ? data : (data.panels || []);
   },
 
   async getLinks(): Promise<JioLink[]> {
     const res = await fetch(`${getApiBase()}/api/links`);
     if (!res.ok) throw new Error(`Failed to fetch links: ${res.statusText}`);
     const data = await res.json();
-    return Array.isArray(data) ? data : data.links || [];
+    return Array.isArray(data) ? data : (data.links || []);
   },
 
   async claimLink(linkId: number): Promise<void> {
@@ -94,11 +105,24 @@ export const jioApi = {
     if (!res.ok) throw new Error(`Failed to claim link: ${res.statusText}`);
   },
 
-  async getLogs(): Promise<string[]> {
+  async getLogs(): Promise<JioLogItem[]> {
     const res = await fetch(`${getApiBase()}/api/logs`);
     if (!res.ok) throw new Error(`Failed to fetch logs: ${res.statusText}`);
     const data = await res.json();
-    return Array.isArray(data) ? data : data.logs || [];
+    if (!Array.isArray(data)) return [];
+    return data.map((item: any) => {
+      if (typeof item === 'string') {
+        return { msg: item };
+      }
+      return {
+        ts: item.ts,
+        time: item.time || '',
+        level: item.level || 'INFO',
+        name: item.name || '',
+        channel: item.channel || '',
+        msg: item.msg || '',
+      };
+    });
   },
 
   async triggerControl(endpoint: string): Promise<any> {
